@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sterk Rygg Webinar</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1f232c;
+    --border: #2a2f3a;
+    --text: #e8eaed;
+    --muted: #9aa0ab;
+    --accent: #e0457b;
+    --host: #2b2034;
+    --live: #e5484d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  .live {
+    background: var(--live); color: #fff; font-size: 11px; font-weight: 700;
+    letter-spacing: .06em; padding: 3px 8px; border-radius: 4px;
+  }
+  .viewers { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 16px;
+    padding: 16px 20px;
+    height: calc(100vh - 53px);
+  }
+  .stage { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .video {
+    position: relative; width: 100%;
+    aspect-ratio: 16 / 9; max-height: calc(100vh - 140px);
+    background: #000; border-radius: 10px; overflow: hidden;
+  }
+  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    background: rgba(0,0,0,.72); z-index: 2; text-align: center; padding: 16px;
+  }
+  .overlay[hidden] { display: none; }
+  .overlay p { margin: 0; color: var(--muted); }
+  .btn {
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    padding: 12px 26px; font-size: 16px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { filter: brightness(1.1); }
+
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    color: var(--muted); font-size: 13px;
+  }
+  .controls button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 10px; font-size: 13px; cursor: pointer;
+  }
+  .controls button:hover { border-color: var(--muted); }
+  .clock { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+  .spacer { flex: 1; }
+
+  .chat {
+    display: flex; flex-direction: column; min-height: 0;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden;
+  }
+  .chat-head {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    font-weight: 600; display: flex; justify-content: space-between;
+  }
+  .chat-head span { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .messages { flex: 1; overflow-y: auto; padding: 10px 8px; }
+  .empty { color: var(--muted); text-align: center; padding: 30px 10px; font-size: 14px; }
+  .msg {
+    display: flex; gap: 10px; padding: 8px; border-radius: 8px;
+    animation: in .25s ease-out;
+  }
+  .msg.host { background: var(--host); }
+  .avatar {
+    flex: none; width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff;
+  }
+  .body { min-width: 0; }
+  .meta { font-size: 13px; }
+  .name { font-weight: 600; }
+  .badge {
+    background: var(--accent); color: #fff; font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px;
+  }
+  .time { color: var(--muted); font-size: 11px; margin-left: 6px; }
+  .text { overflow-wrap: anywhere; white-space: pre-wrap; }
+  .text a { color: #ff8db5; }
+  @keyframes in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .composer { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); }
+  .composer input {
+    flex: 1; min-width: 0; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font: inherit;
+  }
+  .composer input:focus { outline: none; border-color: var(--accent); }
+  .composer button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    padding: 0 16px; font-weight: 600; cursor: pointer;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; height: auto; padding: 12px 16px; }
+    .video { max-height: none; }
+    .chat { height: 70vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="live">LIVE</span>
+  <h1>Sterk Rygg – Webinar med Maiken Lund</h1>
+  <span class="viewers" id="viewers"></span>
+</header>
+
+<main class="layout">
+  <section class="stage">
+    <div class="video">
+      <iframe id="player"
+        src="https://www.veed.io/embed/aa0f1f3c-edac-4e9b-86a2-bdfb021e0478?watermark=1&color=&sharing=1&title=1"
+        title="Sterk Rygg webinar" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      <div class="overlay" id="overlay">
+        <button class="btn" id="join">▶ Bli med på webinaret</button>
+        <p>Trykk, og start deretter videoen</p>
+      </div>
+    </div>
+    <div class="controls">
+      <span>Chat-tid: <span class="clock" id="clock">0:00:00</span></span>
+      <button id="toggle">⏸ Pause chat</button>
+      <button data-shift="-10">−10s</button>
+      <button data-shift="10">+10s</button>
+      <button id="restart">↺ Start på nytt</button>
+      <span class="spacer"></span>
+      <span>Pause chatten når du pauser videoen, så holder de seg synkronisert.</span>
+    </div>
+  </section>
+
+  <aside class="chat">
+    <div class="chat-head">Chat <span id="count">0 meldinger</span></div>
+    <div class="messages" id="messages">
+      <div class="empty" id="empty">Chatten starter når webinaret begynner.</div>
+    </div>
+    <form class="composer" id="composer">
+      <input id="input" placeholder="Skriv en melding…" autocomplete="off" maxlength="500">
+      <button type="submit">Send</button>
+    </form>
+  </aside>
+</main>
+
+<script>
+const CHAT = [{"t": 0, "n": "Edmund", "m": "Heiiiiiaaaa!!!"}, {"t": 0, "n": "Torunc", "m": "Hei!"}, {"t": 0, "n": "Maiken Lund", "m": "Hei! Nå er vi straks live, er du klar? Ha med penn og papir til Ryggtesten!"}, {"t": 0, "n": "Solbjørg Eikeset", "m": "Hei!"}, {"t": 0, "n": "Ola", "m": "Hei"}, {"t": 0, "n": "Solbjørg Eikeset", "m": "Hei!"}, {"t": 0, "n": "Asbjørn Emil Johansen", "m": "Hei"}, {"t": 0, "n": "Turi Budeng", "m": "Hei"}, {"t": 0, "n": "Marit", "m": "Hei"}, {"t": 0, "n": "solveig", "m": "Hei"}, {"t": 0, "n": "linnmarie", "m": "Hei Maiken! Gleder meg 🙂"}, {"t": 0, "n": "Irene", "m": "Hei!"}, {"t": 8, "n": "Lisbeth", "m": "heisann 😍"}, {"t": 11, "n": "Sissel Tomt", "m": "Hei fra Sissel"}, {"t": 29, "n": "linnmarie", "m": "Ser og hører"}, {"t": 32, "n": "Siri Fosselie", "m": "Fin lyd"}, {"t": 34, "n": "Ursula Korpik", "m": "hei fra Oslo ❤️ hører"}, {"t": 37, "n": "Iren Kristin Kjersem Olsen", "m": "👍"}, {"t": 41, "n": "solveig", "m": "👍"}, {"t": 41, "n": "Anne-Marie", "m": "hei"}, {"t": 47, "n": "Anita", "m": "Fin lyd"}, {"t": 51, "n": "Irene", "m": "😊"}, {"t": 59, "n": "Karin", "m": "Hei fr Karin🥰"}, {"t": 72, "n": "Gjest", "m": "Hei"}, {"t": 95, "n": "linnmarie", "m": "Ser den"}, {"t": 113, "n": "Gjest", "m": "Ser deg,"}, {"t": 145, "n": "Aud", "m": "Aud Kleiven er her"}, {"t": 193, "n": "marit", "m": "jeg plages av isjias-smerter-Marit"}, {"t": 337, "n": "Siri Fosselie", "m": "Har spinal stenose og artrose i korsrygg"}, {"t": 349, "n": "Unni B. Wivestad", "m": "76 år"}, {"t": 368, "n": "Randi Gabrielsen", "m": "er operert for spinal stenose, ble bedre I beina, men ryggen ble ille."}, {"t": 369, "n": "Solbjørg Eikeset", "m": "Jeg vil trene for å forebygge ryggsmerter"}, {"t": 373, "n": "Bjarne Berg", "m": "Stiv i rykkem på morgenen, går vekk utover dagen."}, {"t": 385, "n": "oddin", "m": "Tidvis isjas smerter og konstant stiv i korsryggen"}, {"t": 386, "n": "kjell inge", "m": "79 år - tung rygg idag"}, {"t": 390, "n": "Tove Skjølseth", "m": "Spinal stenose og artroser"}, {"t": 396, "n": "solveig", "m": "Problem med korsryggen"}, {"t": 405, "n": "Lis Bett Hals Stuve", "m": "Har et helt greit liv, men ryggen gir meg småplager bestandig etter tre svangerskap for 30-40 år siden."}, {"t": 410, "n": "Maiken", "m": "Fordi jeg stivner i ryggen når jeg står stille - spesielt etter aktivitet, har hatt bekkenlåsning,"}, {"t": 411, "n": "Aina Haug", "m": "senebetennelse i mange år"}, {"t": 426, "n": "Svein VO, AMU", "m": "Vond korsrygg lenge, nå smerter lenger oppe etter dårlig seng i campingvogn"}, {"t": 501, "n": "Irene", "m": "75 år/artrose i ryggsøylen, protese i begge hofter, ve  fortsatt plagsom og medt smerter på ve side, ønsker hjelp til selvhjelp 😊"}, {"t": 583, "n": "Inger", "m": "Mye vondt i korsrygg og ryggstrekkere, artrose v. hofte m cyster labrum og nervesmerter nedover fremside lår og ned i legg."}, {"t": 1100, "n": "marit", "m": "Veldig viktig for meg"}, {"t": 1114, "n": "Frida Kostøl", "m": "👍"}, {"t": 1135, "n": "kjell inge", "m": "pip"}, {"t": 1141, "n": "Frida Kostøl", "m": "Viktig!"}, {"t": 1141, "n": "Inger", "m": "Å gå tur og sykle er kjempeviktig, nå orker jeg bare korte turer!"}, {"t": 1142, "n": "Siri Fosselie", "m": "viktig!"}, {"t": 1146, "n": "lisbeth", "m": "Drømmen"}, {"t": 1149, "n": "Anne-Britt Aasberg", "m": "Kjempeviktig😀"}, {"t": 1156, "n": "Randi Gabrielsen", "m": "kjempeviktig"}, {"t": 1164, "n": "lisbeth", "m": "10"}, {"t": 1165, "n": "Siri Fosselie", "m": "10"}, {"t": 1167, "n": "Frida Kostøl", "m": "10"}, {"t": 1168, "n": "marit", "m": "10"}, {"t": 1169, "n": "Kathrine Gram", "m": "Må gjøre øvelser hver morgen for å gå helt oppreist…"}, {"t": 1171, "n": "Unni B. Wivestad", "m": "10"}, {"t": 1172, "n": "Anne-Britt Aasberg", "m": "10"}, {"t": 1172, "n": "Gjest", "m": "10"}, {"t": 1176, "n": "Aina Haug", "m": "10"}, {"t": 1177, "n": "solveig", "m": "10"}, {"t": 1178, "n": "Halvor Nyquist", "m": "Veldig viktig å bli mykere og smidigere : 10"}, {"t": 1180, "n": "Randi Gabrielsen", "m": "8"}, {"t": 1180, "n": "Solbjørg Eikeset", "m": "10"}, {"t": 1181, "n": "Torunc", "m": "10"}, {"t": 1185, "n": "Bjarne Berg", "m": "10"}, {"t": 1185, "n": "Kathrine Gram", "m": "10"}, {"t": 1190, "n": "Svein VO, AMU", "m": "10"}, {"t": 1191, "n": "Irene", "m": "Veldig viktig 🌻"}, {"t": 1383, "n": "Randi Gabrielsen", "m": "Jeg trener med fysioterapeut,  trener alene tre ganger i uka, smertene blir bedre noen timer så kommer stivheten igjen. Vondt etter sitting og , gåing og også etter å ha ligget en natt."}, {"t": 2106, "n": "Frida Kostøl", "m": "Skal du si noe mere om hormoner og evnt. tilskudd?"}, {"t": 2545, "n": "lisbeth", "m": "A 40 B10 C40"}, {"t": 2550, "n": "Frida Kostøl", "m": "Det var høyest tall som er det msn kjenner mest ikke sant?"}, {"t": 2551, "n": "Siri Fosselie", "m": "A58 B46 C56"}, {"t": 2553, "n": "Jane", "m": "A20. B25. C37"}, {"t": 2556, "n": "Marit", "m": "A50, B 25, C 62"}, {"t": 2567, "n": "Elisabeth", "m": "A 58 B 36 C 53"}, {"t": 2569, "n": "Inger", "m": "45 35 40"}, {"t": 2576, "n": "Solbjørg Eikeset", "m": "A25, B5, C30"}, {"t": 2578, "n": "Kristine", "m": "65 44 52"}, {"t": 2580, "n": "Halvor Nyquist", "m": "A 20, B 44, C 35"}, {"t": 2581, "n": "Siw", "m": "A 50. B 10. C 50"}, {"t": 2582, "n": "Ann Tove Berg", "m": "A12 B11 C21"}, {"t": 2583, "n": "Ola", "m": "A 45  B 30  C 23"}, {"t": 2586, "n": "Irene", "m": "A50 B 52 C 67"}, {"t": 2587, "n": "marit", "m": "A36,B30,C37"}, {"t": 2587, "n": "Unni B. Wivestad", "m": "A28 B24 C 34"}, {"t": 2588, "n": "Jenny", "m": "A35 ,B 10 C60"}, {"t": 2590, "n": "Erik", "m": "50 w28 15"}, {"t": 2598, "n": "Hanpo", "m": "80 78 67"}, {"t": 2601, "n": "Gjest", "m": "A12.  B3.  C26"}, {"t": 2603, "n": "Aina Haug", "m": "A35 , B16,C27"}, {"t": 2603, "n": "Frida Kostøl", "m": "A 32"}, {"t": 2609, "n": "Asbjørn Emil Johansen", "m": "A = 55, C = 59, C = 62"}, {"t": 2610, "n": "Inger Kristin Leirvik", "m": "A47 B 7 C45"}, {"t": 2625, "n": "Unni B. Wivestad", "m": "Min  mann: A10 B30 C17"}, {"t": 2628, "n": "Randi Gabrielsen", "m": "38  47  30.  men var tre jeg ikke fikk med meg"}, {"t": 2628, "n": "Tove Skjølseth", "m": "A63B38C50"}, {"t": 2648, "n": "Sissel Tomt", "m": "Å 18 B 8 C6"}, {"t": 2652, "n": "Stig Hanssen", "m": "A 38 B6 C 48"}, {"t": 2691, "n": "Randi Gabrielsen", "m": "a 38  b 47  c 30"}, {"t": 2709, "n": "Aud", "m": "Aud A20 B29 C52"}, {"t": 2757, "n": "Gjest", "m": "Gir mening"}, {"t": 3319, "n": "Siri Fosselie", "m": "Energi, glede"}, {"t": 3327, "n": "Ann Tove Berg", "m": "Må dessverre forlate webinaret"}, {"t": 3355, "n": "Randi Gabrielsen", "m": "hadde vært glede og behagelig."}, {"t": 3357, "n": "Tove Skjølseth", "m": "*ro letthet"}, {"t": 3360, "n": "Gjest", "m": "Ttrygghet"}, {"t": 3361, "n": "Frida Kostøl", "m": "Energisk, lykke. Det er sånn jeg er og trives med"}, {"t": 3361, "n": "Inger Kristin Leirvik", "m": "Overskudd"}, {"t": 3367, "n": "Eldbjørg", "m": "glede og lykke"}, {"t": 3372, "n": "Inger", "m": "Frihet"}, {"t": 3373, "n": "Bjarne Berg", "m": "Må desverre også forlate webinaret."}, {"t": 3388, "n": "Irene", "m": "Være i båt, kunne hoppe, kjenne meg sterk og fri 🎊"}, {"t": 3398, "n": "Frida Kostøl", "m": "10"}, {"t": 3413, "n": "Siri Fosselie", "m": "10"}, {"t": 3427, "n": "Ursula Korpik", "m": "meget interessant men dessverre nå må jeg gå"}, {"t": 3428, "n": "Irene", "m": "10"}, {"t": 3434, "n": "Frida Kostøl", "m": "Mye"}, {"t": 3446, "n": "smari", "m": "Gå på fjellet"}, {"t": 3452, "n": "Randi Gabrielsen", "m": "ville gått tur med barnebarnet."}, {"t": 3452, "n": "Siri Fosselie", "m": "helt klart"}, {"t": 3457, "n": "Frida Kostøl", "m": "Uten tvil"}, {"t": 3462, "n": "Irene", "m": "👍"}, {"t": 3468, "n": "Tove Skjølseth", "m": "👍"}, {"t": 3470, "n": "solveig", "m": "👍"}, {"t": 3471, "n": "Inger Kristin Leirvik", "m": "👍"}, {"t": 3471, "n": "lisbeth", "m": "👍"}, {"t": 3483, "n": "Gjest", "m": "👍🏻"}, {"t": 3490, "n": "Elisabeth", "m": "👍"}, {"t": 3493, "n": "Randi Gabrielsen", "m": "tommel opp"}, {"t": 3506, "n": "Aina Haug", "m": "👍"}, {"t": 3529, "n": "Frida Kostøl", "m": "Ja, og er allerede i gang"}, {"t": 3531, "n": "marit", "m": "må forlate deg nå !"}, {"t": 3651, "n": "Randi Gabrielsen", "m": "😚 Tenker jeg må bli flinkere med grunnmuren.  Trener allerede tre ganger i uken, pluss hjemme."}, {"t": 4291, "n": "Maiken Lund", "m": "https://www.dinrygghelse.com/sterk-rygg"}, {"t": 4346, "n": "Frida Kostøl", "m": "Kan du gjenta det du sa om individuell tilpasning en til en?"}, {"t": 4487, "n": "Frida Kostøl", "m": "Ja, har noen skader er derfor jeg spør 🤪"}, {"t": 4498, "n": "Laila Sjørbotten", "m": "Hvis jeg ikke kan delta på fellesmøtene,  er videoer tigjengelige i 4 mnd, eller kan man beholde de videre?"}, {"t": 4729, "n": "Randi Gabrielsen", "m": "Jeg sier takk for meg. Dette er for mye jobb og også for dyrt for meg. Men skal ta tak i \"grunnmuren\" i tillegg til den trening jeg allerede gjør, pluss å tenke på restitusjon.😊"}, {"t": 4936, "n": "Laila Sjørbotten", "m": "Er det mange øvelser man står på knærne? har vonde knær....Og å reise meg fra gulvet, er det fremdeles aktuelt? Tviler på at jeg kan delta alle torsdagene, mulig å få tilbakemeldinger utenom, øvelsene ser tunge ut styrkemessig? Men ser absolutt bra ut, bare redd jeg er for svak.."}, {"t": 5290, "n": "Inger", "m": "jeg har uttalt artrose i venstre hofte og skal til utredning for oerasjon i slutten av oktober. . Mye nervesmerter gjennom lysken.  Vondt i korsrygg og ryggstrekkereMange øvelser m hofte jeg ikke klarer. kan jeg ha nytte av dette kurset?"}, {"t": 5359, "n": "Aina Haug", "m": "kan jeg drive med annen trening ved siden av eks treningssenter, turer i naturen"}, {"t": 5587, "n": "Randi Gabrielsen", "m": "Er \"planken\" en del av å styrke grunnmuren?"}, {"t": 5733, "n": "Randi Gabrielsen", "m": "80 her"}, {"t": 5988, "n": "Åsta Ramnefjell Bentzen", "m": "Finnes det kurs der en kan være fysisk tilstede?"}, {"t": 6032, "n": "Maiken Lund", "m": "https://www.dinrygghelse.com/sterk-rygg"}, {"t": 6098, "n": "Randi Gabrielsen", "m": "Men du kan vel ikke se om jeg gjør feil?"}, {"t": 6180, "n": "Randi Gabrielsen", "m": "jeg blir jo rettet på av og til underveis av min  fysioterapeut"}, {"t": 6296, "n": "Gjest", "m": "Takk for fin informasjon, og for fine øvelser."}, {"t": 6319, "n": "Irene", "m": "Takk for gode råd. Jeg må avslutte nå.🌻"}, {"t": 6444, "n": "Kristine", "m": "Meldte meg akkurat på kurset ditt og da nevnes det oppstart i juli?"}];
+const HOST = "Maiken Lund";
+const COLORS = ["#e0457b","#3b82f6","#10b981","#f59e0b","#8b5cf6","#ef4444","#14b8a6","#ec4899","#6366f1","#84cc16"];
+
+const $ = id => document.getElementById(id);
+const list = $("messages");
+let elapsed = 0;          // seconds of webinar time already played
+let startedAt = null;     // performance.now() when clock last resumed, null while paused
+let shown = 0;            // number of CHAT entries rendered
+let mine = [];            // viewer's own messages: {t, m}
+
+function now() { return elapsed + (startedAt === null ? 0 : (performance.now() - startedAt) / 1000); }
+function fmt(s) {
+  s = Math.max(0, Math.floor(s));
+  return Math.floor(s / 3600) + ":" + String(Math.floor(s / 60) % 60).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+function esc(s) { return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function linkify(s) { return esc(s).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`); }
+function color(name) { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return COLORS[h % COLORS.length]; }
+function initials(name) { return name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase(); }
+
+function render(entry, self) {
+  const host = entry.n === HOST || entry.n === "Maiken";
+  const el = document.createElement("div");
+  el.className = "msg" + (host ? " host" : "");
+  el.innerHTML = `
+    <div class="avatar" style="background:${self ? "#4b5563" : color(entry.n)}">${esc(initials(entry.n))}</div>
+    <div class="body">
+      <div class="meta"><span class="name">${esc(entry.n)}</span>${host ? '<span class="badge">VERT</span>' : ""}<span class="time">${fmt(entry.t)}</span></div>
+      <div class="text">${linkify(entry.m)}</div>
+    </div>`;
+  return el;
+}
+
+function rebuild() {
+  // Re-render from scratch (after seeking backwards / restarting).
+  list.innerHTML = "";
+  shown = 0;
+  const t = now();
+  const items = CHAT.filter(c => c.t <= t).map(c => [c, false])
+    .concat(mine.filter(c => c.t <= t).map(c => [c, true]))
+    .sort((a, b) => a[0].t - b[0].t);
+  shown = CHAT.filter(c => c.t <= t).length;
+  if (!items.length) list.innerHTML = '<div class="empty">Chatten starter når webinaret begynner.</div>';
+  items.forEach(([c, self]) => list.appendChild(render(c, self)));
+  list.scrollTop = list.scrollHeight;
+  updateCount();
+}
+
+function updateCount() {
+  const n = list.querySelectorAll(".msg").length;
+  $("count").textContent = n + (n === 1 ? " melding" : " meldinger");
+}
+
+function tick() {
+  const t = now();
+  $("clock").textContent = fmt(t);
+  if (shown < CHAT.length && CHAT[shown].t <= t) {
+    const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+    const empty = list.querySelector(".empty"); if (empty) empty.remove();
+    while (shown < CHAT.length && CHAT[shown].t <= t) list.appendChild(render(CHAT[shown++], false));
+    if (nearBottom) list.scrollTop = list.scrollHeight;
+    updateCount();
+  }
+  // Viewer count roughly follows chat activity, like a live room.
+  const active = new Set(CHAT.slice(0, shown).map(c => c.n)).size;
+  $("viewers").textContent = startedAt !== null || elapsed > 0 ? `👥 ${Math.max(12, active + 18)} ser på` : "";
+}
+
+function play()  { if (startedAt === null) { startedAt = performance.now(); $("toggle").textContent = "⏸ Pause chat"; } }
+function pause() { if (startedAt !== null) { elapsed = now(); startedAt = null; $("toggle").textContent = "▶ Fortsett chat"; } }
+
+$("join").onclick = () => { $("overlay").hidden = true; play(); };
+$("toggle").onclick = () => (startedAt === null ? play() : pause());
+$("restart").onclick = () => { elapsed = 0; if (startedAt !== null) startedAt = performance.now(); rebuild(); };
+document.querySelectorAll("[data-shift]").forEach(b => b.onclick = () => {
+  const d = +b.dataset.shift;
+  elapsed = Math.max(0, now() + d);
+  if (startedAt !== null) startedAt = performance.now();
+  if (d < 0) rebuild(); else tick();
+});
+
+$("composer").onsubmit = e => {
+  e.preventDefault();
+  const m = $("input").value.trim();
+  if (!m) return;
+  const entry = { t: now(), n: "Deg", m };
+  mine.push(entry);
+  const empty = list.querySelector(".empty"); if (empty) empty.remove();
+  list.appendChild(render(entry, true));
+  list.scrollTop = list.scrollHeight;
+  $("input").value = "";
+  updateCount();
+};
+
+setInterval(tick, 250);
+tick();
+</script>
+</body>
+</html>
