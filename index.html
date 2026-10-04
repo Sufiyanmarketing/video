@@ -47,7 +47,7 @@
     aspect-ratio: 16 / 9; max-height: calc(100vh - 140px);
     background: #000; border-radius: 10px; overflow: hidden;
   }
-  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .video video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
   .overlay {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 14px;
@@ -134,22 +134,17 @@
 <main class="layout">
   <section class="stage">
     <div class="video">
-      <iframe id="player"
-        src="https://www.veed.io/embed/aa0f1f3c-edac-4e9b-86a2-bdfb021e0478?watermark=1&color=&sharing=1&title=1"
-        title="Sterk Rygg webinar" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      <video id="player" controls playsinline preload="metadata"
+        src="https://assets.cdn.filesafe.space/lwz4qXELzwGrsPyJqqLb/media/6ac1dde4bbad531ac89ac799.mp4"></video>
       <div class="overlay" id="overlay">
         <button class="btn" id="join">▶ Bli med på webinaret</button>
-        <p>Trykk, og start deretter videoen</p>
+        <p>Chatten følger videoen automatisk</p>
       </div>
     </div>
     <div class="controls">
-      <span>Chat-tid: <span class="clock" id="clock">0:00:00</span></span>
-      <button id="toggle">⏸ Pause chat</button>
-      <button data-shift="-10">−10s</button>
-      <button data-shift="10">+10s</button>
-      <button id="restart">↺ Start på nytt</button>
+      <span>Tid: <span class="clock" id="clock">0:00:00</span></span>
       <span class="spacer"></span>
-      <span>Pause chatten når du pauser videoen, så holder de seg synkronisert.</span>
+      <span>Chatten er synkronisert med videoen.</span>
     </div>
   </section>
 
@@ -172,12 +167,11 @@ const COLORS = ["#e0457b","#3b82f6","#10b981","#f59e0b","#8b5cf6","#ef4444","#14
 
 const $ = id => document.getElementById(id);
 const list = $("messages");
-let elapsed = 0;          // seconds of webinar time already played
-let startedAt = null;     // performance.now() when clock last resumed, null while paused
+const video = $("player");
 let shown = 0;            // number of CHAT entries rendered
 let mine = [];            // viewer's own messages: {t, m}
 
-function now() { return elapsed + (startedAt === null ? 0 : (performance.now() - startedAt) / 1000); }
+function now() { return video.currentTime || 0; }
 function fmt(s) {
   s = Math.max(0, Math.floor(s));
   return Math.floor(s / 3600) + ":" + String(Math.floor(s / 60) % 60).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
@@ -232,21 +226,14 @@ function tick() {
   }
   // Viewer count roughly follows chat activity, like a live room.
   const active = new Set(CHAT.slice(0, shown).map(c => c.n)).size;
-  $("viewers").textContent = startedAt !== null || elapsed > 0 ? `👥 ${Math.max(12, active + 18)} ser på` : "";
+  $("viewers").textContent = video.currentTime > 0 ? `👥 ${Math.max(12, active + 18)} ser på` : "";
 }
 
-function play()  { if (startedAt === null) { startedAt = performance.now(); $("toggle").textContent = "⏸ Pause chat"; } }
-function pause() { if (startedAt !== null) { elapsed = now(); startedAt = null; $("toggle").textContent = "▶ Fortsett chat"; } }
-
-$("join").onclick = () => { $("overlay").hidden = true; play(); };
-$("toggle").onclick = () => (startedAt === null ? play() : pause());
-$("restart").onclick = () => { elapsed = 0; if (startedAt !== null) startedAt = performance.now(); rebuild(); };
-document.querySelectorAll("[data-shift]").forEach(b => b.onclick = () => {
-  const d = +b.dataset.shift;
-  elapsed = Math.max(0, now() + d);
-  if (startedAt !== null) startedAt = performance.now();
-  if (d < 0) rebuild(); else tick();
-});
+$("join").onclick = () => { $("overlay").hidden = true; video.play(); };
+video.addEventListener("play", () => { $("overlay").hidden = true; });
+// After any seek, redraw the chat up to the new position.
+video.addEventListener("seeked", rebuild);
+video.addEventListener("timeupdate", tick);
 
 $("composer").onsubmit = e => {
   e.preventDefault();
